@@ -29,7 +29,6 @@ INCLUDES = -I./ -I./include/ \
 		   -I${SIM_DIR}/include \
 		   -I${SIM_DIR}/src \
 		   
-
 # Source and object files
 CPU_SRC=backend/cpu/calculate_local_energy_cpu.cpp
 GPU_SRC=backend/cuda/calculate_local_energy.cu
@@ -48,6 +47,8 @@ TEST_CPU_OBJECTS+=$(TEST_SRC:.cpp=.o)
 TARGET=eloc_test
 TEST_TARGETS_CPU=test-cpu
 TEST_TARGETS_GPU=test test-bitarr test-bithash
+DLC_LIB=/usr/local/chipltech/synapse/lib
+LDFLAGS	:= -L${DLC_LIB} -lrt -ldlc_runtime -lsynapse_core
 
 .PHONY: all cpu gpu dlc $(TEST_TARGETS) clean
 
@@ -72,7 +73,7 @@ gpu: $(GPU_SRC) check_pybind11
 	__BACKEND=BACKEND_GPU ${PY_ENV} python interface/python/setup.py build_ext --inplace
 
 dlc: $(DLC_SRC) check_pybind11
-	$(CXX) ${INCLUDES} $(CXXOPTIONS) ${DFLAGS} -fPIC -shared -O3 ${DLC_SRC} -o $(LIBNAME)
+	$(CXX) ${INCLUDES} $(CXXOPTIONS) ${DFLAGS} -DBACKEND_DLC -fPIC -shared -O3 ${DLC_SRC} -o $(LIBNAME) ${LDFLAGS}
 	__BACKEND=BACKEND_DLC ${PY_ENV} python interface/python/setup.py build_ext --inplace
 
 # fp64: model precison and psi_type is Float64

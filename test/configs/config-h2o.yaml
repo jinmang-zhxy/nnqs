@@ -1,5 +1,5 @@
 # torch device
-device: 'dlc'
+device: 'cpu'
 #device: 'cuda'
 hamiltonian_type: "CPP" # "CPP" | "exact"
 device_get_conditional_output: 'device' # "cpu" | "device"(the same with "device")

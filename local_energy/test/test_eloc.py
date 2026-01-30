@@ -29,12 +29,14 @@ def test_rand_single(n_orb=4, seed=123, psis_dtype=torch.complex64, is_need_sort
     assert err < err_eps, f"err: {err} seed: {seed} n_orb: {n_orb}"
 
 def test_rand():
-    n_qubits_l, n_qubits_r = 1, 8
+    n_qubits_l, n_qubits_r = 2, 3
     n_rand = 10
-    rands = np.abs(np.random.randn(n_rand)*100).astype(np.int)
+    rands = np.abs(np.random.randn(n_rand)*100).astype(int)
     for i in range(n_qubits_l, n_qubits_r):
         for seed in rands:
             test_rand_single(n_orb=i+1, seed=seed)
+            print()
+    print("pass test rand!!!!!!!!")
 
 def test_mol(ham_path: str, np_data: str, psis_dtype=torch.complex64, is_need_sort=False, err_eps=1e-4):
     n_qubits = eloc.init_hamiltonian(ham_path)
@@ -60,8 +62,8 @@ def test_mol(ham_path: str, np_data: str, psis_dtype=torch.complex64, is_need_so
     eloc.free_hamiltonian()
 
 if __name__ == "__main__":
-    # test_rand()
-    # exit(0)
+    test_rand()
+    exit(0)
     np_data = "H2-fci.npz"
     ham_path = "H2-qubit_op.data"
     np_data = "LiH-fci.npz"

@@ -139,12 +139,13 @@ def train_loop(ham_path, cfg_file, log_file=None):
     n_qubits = ham.get_n_qubits()
     wtrain = nnqs.wrapper_train(config, n_qubits=n_qubits, n_rank=1, rank=0, seed=seed, pos_independ=False)
     print(f"wtrain: {wtrain}")
-
+    def f32_hex(x: float) -> str:
+        # 按 IEEE754 float32 的 bit pattern 输出 8 位 16 进制（无 0x 前缀）
+        return format(np.float32(x).view(np.int32), "08x")
     if config.load_model == 1:
         wtrain.load_model(config.checkpoint_path, config.transfer_learning)
         print(f"load model parameters from {config.checkpoint_path}")
     count_parameters(wtrain, print_verbose=True)
-
     for i in range(1, 1+1):
         Timer.start("total") # accumulation time from start
         Timer.start("elapsed") # one iteration time
@@ -158,7 +159,43 @@ def train_loop(ham_path, cfg_file, log_file=None):
             local_energies = ham.calculate_local_energy(wtrain.wavefunction, states, is_permutation=True, eloc_split_bs=config.eloc_split_bs)
         elif config.hamiltonian_type == "CPP":
             # check if states and psis have nan
+            states_01 = (1 + states) // 2
+            with open("verification_states.txt", "w") as f:
+                for state in states_01:
+                    f.write(" ".join(map(str, state.astype(int).tolist())) + "\n")
+            with open("verification_psis.txt", "w") as f:
+                # psis is already numpy if ret_type='numpy' (default in gen_samples)
+                if hasattr(psis, 'detach'):
+                    psis_np = psis.detach().cpu().numpy()
+                else:
+                    psis_np = psis
+                
+                if psis_np.dtype == np.complex64 or psis_np.dtype == np.complex128:
+                    for val in psis_np:
+                        # format: real_hex imag_hex (float32 bit pattern hex)
+                        f.write(f"{f32_hex(val.real)} {f32_hex(val.imag)}\n")
+                else:
+                    for val in psis_np:
+                        # real only
+                        f.write(f"{f32_hex(val)} {f32_hex(0.0)}\n")
+
             local_energies = ham.calculate_local_energy(states, psis)
+
+            with open("verification_elocs.txt", "w") as f:
+                # local_energies is a tensor, likely complex if H is complex or wavefunction is complex
+                if hasattr(local_energies, 'detach'):
+                    elocs_np = local_energies.detach().cpu().numpy()
+                else:
+                    elocs_np = local_energies
+                
+                # Check if it's complex
+                if np.iscomplexobj(elocs_np):
+                     for val in elocs_np:
+                        f.write(f"{f32_hex(val.real)} {f32_hex(val.imag)}\n")
+                else: 
+                     for val in elocs_np:
+                        f.write(f"{f32_hex(val)} {f32_hex(0.0)}\n")
+
         Timer.stop("eloc")
 
         Timer.start("gradient") # gradient calculation time
